@@ -8,7 +8,7 @@ using UnityEngine;
 namespace FixPlayercount
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Moffein.FixPlayercrount", "Fix Playercount", "1.0.0")]
+    [BepInPlugin("com.Moffein.FixPlayercount", "Fix Playercount", "1.0.1")]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
     public class FixPlayercount : BaseUnityPlugin
     {
