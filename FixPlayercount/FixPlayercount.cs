@@ -14,15 +14,21 @@ namespace FixPlayercount
     [BepInDependency("dev.wildbook.multitudes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.TPDespair.ZetArtifacts", BepInDependency.DependencyFlags.SoftDependency)]
 
-    [BepInPlugin("com.Moffein.FixPlayercount", "Fix Playercount", "1.1.1")]
+    [BepInPlugin("com.Moffein.FixPlayercount", "Fix Playercount", "1.2.2")]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
     public class FixPlayercount : BaseUnityPlugin
     {
         private static bool MultitudesLoaded = false;
         private static bool ZetArtifactsLoaded = false;
 
+        public static bool UpdateOnStageStart = false;
+
+        public static int stageMaxPlayers = 0;
+
         public void Awake()
         {
+            UpdateOnStageStart = Config.Bind("Settings", "Update on Stage Start", false, "Only update playerount on stage start. This will make it so that the game will ignore player disconnects and will use the maximum connected players during the stage to determine difficulty/item drop calculations.").Value;
+
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("dev.wildbook.multitudes"))
             {
                 MultitudesLoaded = true;
@@ -30,6 +36,15 @@ namespace FixPlayercount
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.TPDespair.ZetArtifacts"))
             {
                 ZetArtifactsLoaded = true;
+            }
+
+            if (UpdateOnStageStart)
+            {
+                On.RoR2.Stage.Start += (orig, self) =>
+                {
+                    stageMaxPlayers = 0;
+                    orig(self);
+                };
             }
 
             //Based on https://github.com/wildbook/R2Mods/blob/master/Multitudes/Multitudes.cs
@@ -60,6 +75,19 @@ namespace FixPlayercount
             {
                 players = ApplyZetMultitudesArtifact(players);
             }
+
+            if (UpdateOnStageStart)
+            {
+                if (players > FixPlayercount.stageMaxPlayers)
+                {
+                    FixPlayercount.stageMaxPlayers = players;
+                }
+                else
+                {
+                    players = FixPlayercount.stageMaxPlayers;
+                }
+            }
+
             return players;
         }
 
@@ -72,7 +100,7 @@ namespace FixPlayercount
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static int ApplyZetMultitudesArtifact(int origPlayerCount)
         {
-            if (RunArtifactManager.instance.IsArtifactEnabled(ZetArtifactsContent.Artifacts.ZetMultifact))
+            if (TPDespair.ZetArtifacts.ZetMultifact.Enabled && RunArtifactManager.instance.IsArtifactEnabled(ZetArtifactsContent.Artifacts.ZetMultifact))
             {
                 return origPlayerCount * Math.Max(2, ZetArtifactsPlugin.MultifactMultiplier.Value); //GetMultiplier is private so I copypasted the code.
             }
